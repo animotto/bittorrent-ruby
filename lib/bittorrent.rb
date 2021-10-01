@@ -2,3 +2,4 @@
 
 require 'bittorrent/bencode'
 require 'bittorrent/file'
+require 'bittorrent/tracker'
