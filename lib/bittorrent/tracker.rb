@@ -142,6 +142,7 @@ module BitTorrent
 
     ACTION_CONNECT_ID = 0
     ACTION_ANNOUNCE_ID = 1
+    ACTION_ERROR_ID = 3
     CONNECT_MAGIC = 0x41727101980
     CONNECT_MIN_LENGTH = 16
     ANNOUNCE_MIN_LENGTH = 20
@@ -185,12 +186,21 @@ module BitTorrent
       send(payload)
 
       data = receive
+      buffer = StringIO.new(data)
+      action = buffer.read(4).unpack1('L>')
+      transaction_id_response = buffer.read(4).unpack1('L>')
+      raise TrackerError, 'Response transaction ID mismatch' if transaction_id_response != transaction_id
+
+      if action == ACTION_ERROR_ID
+        error = buffer.read.unpack1('Z*')
+        raise TrackerError, "Response with the error: #{error}"
+      end
+
+      raise TrackerError, "Response action mismatch (#{action})" if action != ACTION_ANNOUNCE_ID
       raise TrackerError, "Response less than #{ANNOUNCE_MIN_LENGTH} bytes" if data.bytesize < ANNOUNCE_MIN_LENGTH
       raise TrackerError, 'Response has wrong length' if (data.bytesize - ANNOUNCE_MIN_LENGTH) % 6 != 0
 
       data = data.unpack('L>5a*')
-      raise TrackerError, "Response action mismatch (#{data[0]})" if data[0] != ACTION_ANNOUNCE_ID
-      raise TrackerError, 'Response transaction ID mismatch' if data[1] != transaction_id
 
       response = {
         peers: [],
