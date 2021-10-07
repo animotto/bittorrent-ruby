@@ -32,6 +32,7 @@ module BitTorrent
       MSG_PORT_ID => :on_msg_port
     }.freeze
 
+    CONNECT_TIMEOUT = 5
     IO_WAIT_TIMEOUT = 1
     KEEPALIVE_INTERVAL = 60
 
@@ -51,12 +52,12 @@ module BitTorrent
 
     ##
     # Opens peer connection
-    def open(client_id, info_hash)
+    def open(client_id, info_hash, timeout: CONNECT_TIMEOUT)
       raise PeerError, 'The connection is already opened' if opened?
 
       @client_id = client_id
       @info_hash = info_hash
-      @socket = TCPSocket.new(@ip, @port)
+      @socket = Socket.tcp(@ip, @port, connect_timeout: timeout)
       @opened = true
     end
 
